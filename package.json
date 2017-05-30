@@ -1,0 +1,40 @@
+{
+  "name": "mqtt-nedb-store",
+  "version": "0.1.0",
+  "description": "Store your in-flight mqtt packets in nedb",
+  "main": "mqtt-nedb-store.js",
+  "scripts": {
+    "test": "mocha test.js",
+    "pretest": "npm run check-style",
+    "check-style:eslint": "eslint *.js",
+    "check-style:jshint": "jshint *.js",
+    "check-style:jscs": "jscs *.js",
+    "check-style": "npm run check-style:jshint && npm run check-style:jscs && npm run check-style:eslint"
+  },
+  "pre-commit": "test",
+  "keywords": [
+    "mqtt",
+    "nedb",
+    "store"
+  ],
+  "author": "Behrad Zari <behradz@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/behrad/mqtt-nedb-store.git"
+  },
+  "dependencies": {
+    "msgpack5": "^3.4.1",
+    "nedb": "^1.8.0"
+  },
+  "devDependencies": {
+    "concat-stream": "^1.4.7",
+    "eslint": "^2.8.0",
+    "jscs": "^3.0.3",
+    "jshint": "^2.6.3",
+    "mocha": "^2.2.0",
+    "mqtt": "^1.5.0",
+    "pre-commit": "^1.0.6",
+    "should": "^8.3.1"
+  }
+}
