@@ -1,6 +1,6 @@
 # MQTT.js NeDB Store
 
-NeDB Store for in-flight MQTT.js packets. Thanks to [nedb](hhttps://github.com/louischatriot/nedb).
+NeDB Store for in-flight MQTT.js packets. Thanks to [nedb](https://github.com/louischatriot/nedb).
 
 ## Usage
 
