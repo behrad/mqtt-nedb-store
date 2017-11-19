@@ -16,7 +16,9 @@ var Store = function (options) {
     return new Store(options)
   }
 
-  this._opts = options || {}
+  this._opts = options || {
+  	bprefix : "b:base64:"
+  }
   this.db = new Datastore({ filename: this._opts.filename, autoload: true })
 }
 
@@ -29,13 +31,31 @@ Store.prototype.put = function (packet, cb) {
   cb = cb || noop
   this.db.insert({_id: packet.messageId, packet: packet}, function (err, doc) {
     if (err) {
-      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: packet}, {}, function (err) {
+      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: preparePacket(packet)}, {}, function (err) {
         cb(err, packet)
       }.bind(this))
     }
     cb(null, doc)
   }.bind(this))
   return this
+
+  function preparePacket (packet){
+  	var res = {}
+  	for (var k in packet)
+  		res[k] = bufferReplacer(packet[k])
+  	return res
+  }
+
+  function bufferReplacer (val) {
+    if (!isBuffer(val)) return val
+    var res = val.length ? 'base64:' + val.toString(this._opts.bprefix.length) : ''
+    return res
+  }.bind(this)
+
+  function isBuffer (obj) {
+    return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+  }
+
 }
 
 /**
@@ -105,12 +125,26 @@ Store.prototype.get = function (packet, cb) {
   cb = cb || noop
   this.db.findOne({ _id: packet.messageId }, function (err, packet) {
     if (packet) {
-      cb(null, packet.packet)
+
+      cb(null, packetReviver(packet.packet))
     } else {
       cb(err || new Error('missing packet'))
     }
   });
   return this
+
+  function packetReviver (packet){
+  	for (var k in packet)
+  		packet[k] = bufferReviver(packet[k]);
+  	return packet;
+  }
+
+  function bufferReviver (val) {
+	if (typeof val === 'string' && val.search(this._opts.bprefix) === 0 ){
+		return new Buffer(val.slice(this._opts.bprefix.length), 'base64');
+	}
+	else return val;
+  }.bind(this)
 }
 
 /**
