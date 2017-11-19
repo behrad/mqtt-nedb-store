@@ -16,9 +16,8 @@ var Store = function (options) {
     return new Store(options)
   }
 
-  this._opts = options || {
-  	bprefix : "b:base64:"
-  }
+  this._opts = options || {}
+  if (!this._opts.bprefix) this._opts.bprefix = "b:base64:"
   this.db = new Datastore({ filename: this._opts.filename, autoload: true })
 }
 
@@ -29,9 +28,9 @@ var Store = function (options) {
  */
 Store.prototype.put = function (packet, cb) {
   cb = cb || noop
-  this.db.insert({_id: packet.messageId, packet: packet}, function (err, doc) {
+  this.db.insert({_id: packet.messageId, packet: preparePacket.bind(this)(packet)}, function (err, doc) {
     if (err) {
-      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: preparePacket(packet)}, {}, function (err) {
+      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: preparePacket.bind(this)(packet)}, {}, function (err) {
         cb(err, packet)
       }.bind(this))
     }
@@ -41,16 +40,17 @@ Store.prototype.put = function (packet, cb) {
 
   function preparePacket (packet){
   	var res = {}
-  	for (var k in packet)
-  		res[k] = bufferReplacer(packet[k])
+  	for (var k in packet){
+  		res[k] = bufferReplacer.bind(this)(packet[k])
+    }
   	return res
   }
 
   function bufferReplacer (val) {
     if (!isBuffer(val)) return val
-    var res = val.length ? 'base64:' + val.toString(this._opts.bprefix.length) : ''
+    var res = val.length ? this._opts.bprefix + val.toString("base64") : ''
     return res
-  }.bind(this)
+  }
 
   function isBuffer (obj) {
     return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
@@ -122,29 +122,29 @@ Store.prototype.del = function (packet, cb) {
  * get a packet from the store.
  */
 Store.prototype.get = function (packet, cb) {
+
   cb = cb || noop
   this.db.findOne({ _id: packet.messageId }, function (err, packet) {
     if (packet) {
-
-      cb(null, packetReviver(packet.packet))
+      cb(null, packetReviver.bind(this)(packet.packet))
     } else {
       cb(err || new Error('missing packet'))
     }
-  });
+  }.bind(this));
   return this
 
   function packetReviver (packet){
-  	for (var k in packet)
-  		packet[k] = bufferReviver(packet[k]);
-  	return packet;
+  	for (var k in packet)  
+      packet[k] = bufferReviver.bind(this)(packet[k])
+    return packet
   }
 
-  function bufferReviver (val) {
-	if (typeof val === 'string' && val.search(this._opts.bprefix) === 0 ){
-		return new Buffer(val.slice(this._opts.bprefix.length), 'base64');
-	}
-	else return val;
-  }.bind(this)
+  function bufferReviver (val) { 
+  	if (typeof val === 'string' && val.search(this._opts.bprefix) === 0 ){
+	 	 return new Buffer(val.slice(this._opts.bprefix.length), 'base64')
+	 }
+	 else return val
+  }
 }
 
 /**
