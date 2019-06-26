@@ -18,6 +18,9 @@ var Store = function (options) {
 
   this._opts = options || {}
   this.db = new Datastore({ filename: this._opts.filename, autoload: true })
+  if (this._opts.autocompactionInterval) {
+    this.db.persistence.setAutocompactionInterval(Number(this._opts.autocompactionInterval))
+  }
 }
 
 /**
@@ -140,9 +143,13 @@ var Manager = function (path, options) {
 
     }
   }
+  var incomingOptions = (options && options.incoming) || {}
+  incomingOptions.filename = require('path').join(path, 'incoming')
+  this.incoming = new Store(incomingOptions)
 
-  this.incoming = new Store({filename: require('path').join(path, 'incoming')})
-  this.outgoing = new Store({filename: require('path').join(path, 'outgoing')})
+  var outgoingOptions = (options && options.outgoing) || {}
+  outgoingOptions.filename = require('path').join(path, 'outgoing')
+  this.outgoing = new Store(outgoingOptions)
 }
 
 Manager.single = Store;
