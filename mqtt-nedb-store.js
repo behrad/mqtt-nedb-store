@@ -17,6 +17,7 @@ var Store = function (options) {
   }
 
   this._opts = options || {}
+  if (!this._opts.bprefix) this._opts.bprefix = "b:base64:"
   this.db = new Datastore({ filename: this._opts.filename, autoload: true })
   if (this._opts.autocompactionInterval) {
     this.db.persistence.setAutocompactionInterval(Number(this._opts.autocompactionInterval))
@@ -30,15 +31,34 @@ var Store = function (options) {
  */
 Store.prototype.put = function (packet, cb) {
   cb = cb || noop
-  this.db.insert({_id: packet.messageId, packet: packet}, function (err, doc) {
+  this.db.insert({_id: packet.messageId, packet: preparePacket.bind(this)(packet)}, function (err, doc) {
     if (err) {
-      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: packet}, {}, function (err) {
+      return this.db.update({_id: packet.messageId}, {_id: packet.messageId, packet: preparePacket.bind(this)(packet)}, {}, function (err) {
         cb(err, packet)
       }.bind(this))
     }
     cb(null, doc)
   }.bind(this))
   return this
+
+  function preparePacket (packet){
+  	var res = {}
+  	for (var k in packet){
+  		res[k] = bufferReplacer.bind(this)(packet[k])
+    }
+  	return res
+  }
+
+  function bufferReplacer (val) {
+    if (!isBuffer(val)) return val
+    var res = val.length ? this._opts.bprefix + val.toString("base64") : ''
+    return res
+  }
+
+  function isBuffer (obj) {
+    return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+  }
+
 }
 
 /**
@@ -105,15 +125,29 @@ Store.prototype.del = function (packet, cb) {
  * get a packet from the store.
  */
 Store.prototype.get = function (packet, cb) {
+
   cb = cb || noop
   this.db.findOne({ _id: packet.messageId }, function (err, packet) {
     if (packet) {
-      cb(null, packet.packet)
+      cb(null, packetReviver.bind(this)(packet.packet))
     } else {
       cb(err || new Error('missing packet'))
     }
-  });
+  }.bind(this));
   return this
+
+  function packetReviver (packet){
+  	for (var k in packet)  
+      packet[k] = bufferReviver.bind(this)(packet[k])
+    return packet
+  }
+
+  function bufferReviver (val) { 
+  	if (typeof val === 'string' && val.search(this._opts.bprefix) === 0 ){
+	 	 return new Buffer(val.slice(this._opts.bprefix.length), 'base64')
+	 }
+	 else return val
+  }
 }
 
 /**
