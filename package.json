@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "concat-stream": "^1.4.7",
-    "eslint": "^2.8.0",
+    "eslint": "^6.6.0",
     "jscs": "^3.0.3",
     "jshint": "^2.6.3",
     "mocha": "^2.2.0",
