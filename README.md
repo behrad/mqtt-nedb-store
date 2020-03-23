@@ -39,7 +39,7 @@ NeDB datastores are compacted by default only when opened. NeDB's automatic
 periodic compaction can be activated with NeDB constructor options:
 
 ```
-  manager = NeDBStore('path/to/db', { outgoing: { autocompactionInterval: 60 } });
+  manager = NeDBStore('path/to/db', { autocompactionInterval: 60 });
 ```
 
 
